@@ -11,19 +11,19 @@ event handlers → toast/init → property-based tests.
 
 ## Tasks
 
-- [ ] 1. Project scaffolding — create the three source files
-  - [-] 1.1 Create `index.html` with a valid HTML5 doctype, `<html lang="en">`, `<head>` (charset, viewport, title "Ledgerly"), and an empty `<body>`
+- [x] 1. Project scaffolding — create the three source files
+  - [x] 1.1 Create `index.html` with a valid HTML5 doctype, `<html lang="en">`, `<head>` (charset, viewport, title "Ledgerly"), and an empty `<body>`
     - Add the inline no-flicker theme script in `<head>` (reads `ledgerly_theme` from LocalStorage; sets `data-theme="dark"` on `<html>` synchronously before CSS parse)
     - Add `<link rel="stylesheet" href="css/style.css">` in `<head>`
     - Add Chart.js 4.x CDN `<script>` tag **before** `<script src="js/app.js" defer></script>`
     - _Requirements: 1.8, 14.1, 14.2, 14.5_
-  - [~] 1.2 Create `css/style.css` as an empty file with a top comment banner
+  - [x] 1.2 Create `css/style.css` as an empty file with a top comment banner
     - _Requirements: 14.5_
-  - [~] 1.3 Create `js/app.js` as an empty file with the section comment banners listed in the design
+  - [x] 1.3 Create `js/app.js` as an empty file with the section comment banners listed in the design
     - _Requirements: 14.5_
 
-- [ ] 2. HTML skeleton — all semantic sections with correct IDs
-  - [~] 2.1 Add `<header id="app-header">` containing: logo + "Ledgerly" h1, subtitle paragraph "Make every rupiah count.", month/year span, and theme toggle `<button>`
+- [x] 2. HTML skeleton — all semantic sections with correct IDs
+  - [x] 2.1 Add `<header id="app-header">` containing: logo + "Ledgerly" h1, subtitle paragraph "Make every rupiah count.", month/year span, and theme toggle `<button>`
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
   - [~] 2.2 Add `<main>` with child sections: `#dashboard-cards`, `#budget-progress`, `#insights`, `#expense-form` (with `#category-modal` dialog), `#chart-section` (with `<canvas id="spending-chart">`), `#transaction-list`, `#monthly-summary`, `#data-tools`
     - Each section needs its correct `id` attribute and semantic element (`<section>`, `<form>`, `<dialog>`)
@@ -35,23 +35,23 @@ event handlers → toast/init → property-based tests.
   - [~] 3.1 Define CSS custom properties on `:root` for the light-mode palette (all 11 colors from Requirement 13.1) and override them under `[data-theme="dark"]` for the dark-mode palette (Requirement 13.2)
     - Add `--transition-theme: 100ms ease` and component transition vars (`--transition-ui: 200ms ease`)
     - _Requirements: 1.5, 1.6, 13.1, 13.2_
-  - [~] 3.2 Write global resets (`*, *::before, *::after { box-sizing: border-box }`), `body` base styles (font stack per Requirement 13.3, background, color, min-width 360px), and `body`/`.card` theme transition rules
+  - [x] 3.2 Write global resets (`*, *::before, *::after { box-sizing: border-box }`), `body` base styles (font stack per Requirement 13.3, background, color, min-width 360px), and `body`/`.card` theme transition rules
     - _Requirements: 13.3, 13.6, 13.8_
-  - [~] 3.3 Write card styles (`.card`): background, border, border-radius 12–18px, shadow; write button styles (`.btn`, `.btn-primary`, `.btn-danger`, `.btn-ghost`): rounded corners 10–12px, transition 150–250ms; write badge styles (`.badge`): category color chip
+  - [x] 3.3 Write card styles (`.card`): background, border, border-radius 12–18px, shadow; write button styles (`.btn`, `.btn-primary`, `.btn-danger`, `.btn-ghost`): rounded corners 10–12px, transition 150–250ms; write badge styles (`.badge`): category color chip
     - _Requirements: 13.4, 13.5, 13.6_
-  - [~] 3.4 Write responsive dashboard cards grid (`.dashboard-cards`: `repeat(auto-fit, minmax(200px, 1fr))`), two-pane main grid (`.main-grid`: single column; `@media (min-width:1024px)` two columns), and Remaining Balance font-size rule (≥ 1.5× other cards)
+  - [x] 3.4 Write responsive dashboard cards grid (`.dashboard-cards`: `repeat(auto-fit, minmax(200px, 1fr))`), two-pane main grid (`.main-grid`: single column; `@media (min-width:1024px)` two columns), and Remaining Balance font-size rule (≥ 1.5× other cards)
     - _Requirements: 2.6, 13.8_
-  - [~] 3.5 Write styles for: progress bar (`.progress-bar`, `.progress-fill` with color transition), insights section, modal/dialog (`.modal`, focus-trap outline), toast (`.toast`, `.toast--success`, `.toast--error`, slide-in animation, auto-dismiss fade), and `#chart-canvas-wrapper` (min-height 200px, max-height 500px)
+  - [x] 3.5 Write styles for: progress bar (`.progress-bar`, `.progress-fill` with color transition), insights section, modal/dialog (`.modal`, focus-trap outline), toast (`.toast`, `.toast--success`, `.toast--error`, slide-in animation, auto-dismiss fade), and `#chart-canvas-wrapper` (min-height 200px, max-height 500px)
     - _Requirements: 3.1–3.4, 3.7, 5.9, 6.2, 7.6, 13.4, 13.6_
 
 
-- [ ] 4. `app.js` constants, state, and config
-  - [~] 4.1 Write the `// ─── CONSTANTS & CONFIG ───` section: define `CONSTANTS` object (LocalStorage keys, max category count 50, max name length 100, amount min/max), `DEFAULT_CATEGORIES` array, and `CATEGORY_PALETTE` array (12 hex colors from design)
+- [x] 4. `app.js` constants, state, and config
+  - [x] 4.1 Write the `// ─── CONSTANTS & CONFIG ───` section: define `CONSTANTS` object (LocalStorage keys, max category count 50, max name length 100, amount min/max), `DEFAULT_CATEGORIES` array, and `CATEGORY_PALETTE` array (12 hex colors from design)
     - _Requirements: 5.1, 6.3, 6.4, 12.1–12.4, 14.1_
-  - [~] 4.2 Write the `// ─── STATE ───` section: declare `AppState` singleton with all fields from the design (`transactions`, `budget`, `categories`, `theme`, `selectedMonth`, `chartInstance`, `txFilter`)
+  - [x] 4.2 Write the `// ─── STATE ───` section: declare `AppState` singleton with all fields from the design (`transactions`, `budget`, `categories`, `theme`, `selectedMonth`, `chartInstance`, `txFilter`)
     - _Requirements: 2.1–2.4, 8.7–8.9_
 
-- [ ] 5. LocalStorage layer
+- [~] 5. LocalStorage layer
   - [~] 5.1 Write `loadFromStorage()`: read all four keys (`ledgerly_transactions`, `ledgerly_budget`, `ledgerly_categories`, `ledgerly_theme`) with individual try/catch blocks; initialize each `AppState` field to its empty default on parse failure; call `showStorageWarning()` for each failed key
     - _Requirements: 12.1–12.5, 12.6, 12.7_
   - [~] 5.2 Write `saveTransactions()`, `saveBudget()`, `saveCategories()`, `saveTheme()`: each wraps `localStorage.setItem` in try/catch; on quota error `saveTransactions` shows error toast and rethrows so the caller skips form reset

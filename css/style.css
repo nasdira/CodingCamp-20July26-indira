@@ -1,0 +1,402 @@
+/*
+ * Ledgerly — Expense & Budget Visualizer
+ * css/style.css — Design system: custom properties, typography, layout, components
+ */
+
+/* ─── CSS CUSTOM PROPERTIES: LIGHT MODE (default) ──────────────────────────── */
+/* Requirements 13.1: 11-color light palette; 1.5/1.6: theme switch ≤ 100ms     */
+
+:root {
+  --color-bg: #F5F9FF;
+  --color-card-bg: #FFFFFF;
+  --color-primary-text: #1D1D1F;
+  --color-secondary-text: #6E6E73;
+  --color-primary: #0A84FF;
+  --color-deep-blue: #0066CC;
+  --color-soft-blue: #EAF4FF;
+  --color-border: #D9E7F5;
+  --color-success: #34C759;
+  --color-warning: #FF9F0A;
+  --color-danger: #FF453A;
+  --transition-theme: 100ms ease;
+  --transition-ui: 200ms ease;
+}
+
+/* ─── CSS CUSTOM PROPERTIES: DARK MODE override ─────────────────────────────── */
+/* Requirement 13.2: dark palette applied when data-theme="dark" is on <html>    */
+
+[data-theme="dark"] {
+  --color-bg: #0B1220;
+  --color-card-bg: #111C2E;
+  --color-primary-text: #F5F7FA;
+  --color-secondary-text: #AAB7C7;
+  --color-primary: #0A84FF;
+  --color-border: #22334D;
+}
+
+/* ─── GLOBAL RESET ─────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ─── BODY BASE STYLES ──────────────────────────────────────────────────────── */
+/* Requirement 13.3: font stack; Requirement 13.8: responsive from 360px        */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-primary-text);
+  min-width: 360px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ─── THEME TRANSITION RULES ────────────────────────────────────────────────── */
+/* Requirement 13.6: smooth state transitions; 13.8: theme switch ≤ 100ms       */
+
+body {
+  transition: background-color var(--transition-theme), color var(--transition-theme);
+}
+
+.card {
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+/* ─── COMPONENTS: CARD ──────────────────────────────────────────────────────── */
+/* Requirements 13.4 (border-radius 12–18px), 13.6 (transition 150–250ms)       */
+
+.card {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  /* Override the theme-only transition rule above with full UI transitions */
+  transition:
+    background-color var(--transition-theme),
+    border-color var(--transition-theme),
+    box-shadow var(--transition-ui, 200ms ease);
+}
+
+.card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── COMPONENTS: BUTTONS ───────────────────────────────────────────────────── */
+/* Requirements 13.5 (border-radius 10–12px), 13.6 (transition 150–250ms)       */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease,
+    opacity 200ms ease,
+    border-color 200ms ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+/* Primary — filled blue */
+.btn-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-deep-blue);
+}
+
+/* Danger — filled red */
+.btn-danger {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+/* Ghost — transparent with border */
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-soft-blue);
+}
+
+/* ─── COMPONENTS: BADGE ─────────────────────────────────────────────────────── */
+/* Requirement 13.4 (pill shape); color set inline by getCategoryColor() in JS  */
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+  /* JS sets element.style.backgroundColor via getCategoryColor();               */
+  /* var(--badge-color) is a fallback when the inline style is absent.           */
+  background-color: var(--badge-color, var(--color-primary));
+  white-space: nowrap;
+}
+
+/* ─── LAYOUT: DASHBOARD CARDS GRID ─────────────────────────────────────────── */
+/* Requirements 2.6, 13.8: responsive auto-fit grid from 360px to 1440px        */
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* ─── LAYOUT: MAIN TWO-PANE GRID ────────────────────────────────────────────── */
+/* Requirement 13.8: single column on mobile, two columns on ≥ 1024px            */
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .main-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ─── COMPONENTS: CARD VALUES ───────────────────────────────────────────────── */
+/* Requirement 2.6: Remaining Balance value ≥ 1.5× the other summary card values */
+
+.card-value {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.card--remaining-balance .card-value {
+  font-size: 1.5rem; /* 1.5× the base 1rem used by the other three cards */
+}
+
+/* ─── COMPONENTS: PROGRESS BAR ─────────────────────────────────────────────── */
+/* Requirements 3.1–3.4, 3.7, 13.6: proportional fill, color thresholds,       */
+/* smooth width + color transitions                                              */
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background-color: var(--color-border);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 0;
+  /* background-color is set by JS via inline style using getProgressBarColor()  */
+  transition: width 300ms ease, background-color 250ms ease;
+}
+
+/* ─── COMPONENTS: INSIGHTS ──────────────────────────────────────────────────── */
+/* Requirements 4.1–4.6: textual spend insights with warning/danger variants     */
+
+#insights,
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.insight-text {
+  color: var(--color-secondary-text);
+  line-height: 1.55;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.insight-text--warning {
+  color: var(--color-warning);
+}
+
+.insight-text--danger {
+  color: var(--color-danger);
+}
+
+/* ─── COMPONENTS: MODAL / DIALOG ────────────────────────────────────────────── */
+/* Requirements 6.2, 13.4 (border-radius 12–18px), 13.6 (transition 150–250ms)  */
+
+dialog,
+.modal {
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card-bg);
+  color: var(--color-primary-text);
+  max-width: clamp(320px, 90vw, 540px);
+  width: calc(100% - 2rem);
+  padding: 1.75rem 2rem;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.10);
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
+dialog[open] {
+  opacity: 1;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Accessibility: focus-trap visible outline inside modal (Req 6.2, 13.4)       */
+dialog *:focus-visible,
+.modal *:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Modal structural helper classes */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+}
+
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-primary-text);
+  margin: 0;
+}
+
+.modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-secondary-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.modal-close:hover {
+  background: var(--color-border);
+  color: var(--color-primary-text);
+}
+
+/* ─── COMPONENTS: TOAST ─────────────────────────────────────────────────────── */
+/* Requirements 5.9, 13.4 (border-radius 12px), 13.6 (slide-in + fade-out)      */
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-fade-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+#toast-container {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+  padding: 1rem;
+  max-width: calc(100vw - 2.5rem);
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 0.875rem 1.25rem;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #ffffff;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    0 1px 4px rgba(0, 0, 0, 0.12);
+  animation: toast-slide-in 300ms ease forwards;
+  max-width: 360px;
+  word-break: break-word;
+}
+
+.toast--dismissing {
+  animation: toast-fade-out 400ms ease forwards;
+}
+
+.toast--success {
+  background: var(--color-success); /* #34C759 */
+}
+
+.toast--error {
+  background: var(--color-danger); /* #FF453A */
+}
+
+/* ─── COMPONENTS: CHART CANVAS WRAPPER ─────────────────────────────────────── */
+/* Requirement 7.6: min-height 200px, max-height 500px, responsive resize        */
+
+#chart-canvas-wrapper {
+  min-height: 200px;
+  max-height: 500px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative; /* for .chart-empty-state absolute positioning if needed  */
+}
+
+#chart-canvas-wrapper canvas {
+  max-height: 100%;
+  width: 100% !important; /* override Chart.js inline width */
+}
+
+.chart-empty-state {
+  color: var(--color-secondary-text);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+  margin: 0;
+}
