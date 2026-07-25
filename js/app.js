@@ -509,9 +509,6 @@ function renderDashboardCards() {
  * Satisfies Requirements 3.1–3.7.
  */
 function renderBudgetProgress() {
-  const container = document.getElementById('budget-progress');
-  if (!container) return;
-
   // Compute ratio for the current calendar month
   const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
   const total = getTotalExpenses(AppState.transactions, currentMonth);
@@ -524,27 +521,30 @@ function renderBudgetProgress() {
   // Integer percentage shown in the label (floor, not round, per task spec)
   const labelPct = Math.floor(fillPct);
 
-  container.innerHTML = `
-    <div class="budget-progress-container">
-      <div class="budget-progress-header">
-        <span class="budget-progress-label">Budget Used</span>
-        <span class="budget-progress-pct" aria-live="polite">${labelPct}%</span>
-      </div>
-      <div
-        class="progress-bar"
-        role="progressbar"
-        aria-valuenow="${labelPct}"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-label="Budget usage progress"
-      >
-        <div
-          class="progress-fill"
-          style="width:${fillPct}%;background-color:${color};"
-        ></div>
-      </div>
-    </div>
-  `;
+  // Update only the dynamic elements — do NOT replace the section's innerHTML
+  // because that would destroy the budget input and Set Budget button.
+  const fillEl = document.getElementById('budget-progress-fill');
+  if (fillEl) {
+    fillEl.style.width = `${fillPct}%`;
+    fillEl.style.backgroundColor = color;
+  }
+
+  const pctEl = document.getElementById('budget-progress-percentage');
+  if (pctEl) pctEl.textContent = `${labelPct}%`;
+
+  // Keep the progressbar ARIA attributes in sync
+  const trackEl = document.querySelector('#budget-progress [role="progressbar"]');
+  if (trackEl) {
+    trackEl.setAttribute('aria-valuenow', String(labelPct));
+  }
+
+  // Reflect the current saved budget value in the input field (without
+  // overriding what the user is actively typing — only update when the
+  // input is not focused).
+  const budgetInput = document.getElementById('budget-input');
+  if (budgetInput && document.activeElement !== budgetInput) {
+    budgetInput.value = AppState.budget > 0 ? AppState.budget : '';
+  }
 }
 
 // ─── RENDER: INSIGHTS ─────────────────────────────────────────────────────────
