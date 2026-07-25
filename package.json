@@ -1,0 +1,17 @@
+{
+  "name": "ledgerly",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Property-based tests for Ledgerly Expense & Budget Visualizer",
+  "scripts": {
+    "test": "vitest --run"
+  },
+  "devDependencies": {
+    "fast-check": "3.22.0",
+    "vitest": "2.1.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

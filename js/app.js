@@ -723,13 +723,15 @@ function renderChart() {
  * Satisfies Requirements 8.1–8.11.
  */
 function renderTransactionList() {
-  const listContainer = document.getElementById('transaction-list');
+  // The transaction items are rendered into #transaction-items (inside the
+  // #transaction-list section), not into the section element itself.
+  const listContainer = document.getElementById('transaction-items');
   if (!listContainer) return;
 
   // ── 1. Sync filter controls to AppState.txFilter ──────────────────────────
-  const searchInput = document.getElementById('tx-search');
-  const categoryFilter = document.getElementById('tx-category-filter');
-  const sortSelect = document.getElementById('tx-sort');
+  const searchInput = document.getElementById('search-input');
+  const categoryFilter = document.getElementById('category-filter');
+  const sortSelect = document.getElementById('sort-select');
 
   if (searchInput) searchInput.value = AppState.txFilter.search;
   if (sortSelect) sortSelect.value = AppState.txFilter.sort;
@@ -1124,4 +1126,781 @@ function updateExpenseFormCategorySelect() {
 
 // ─── EVENT HANDLERS ───────────────────────────────────────────────────────────
 
+/**
+ * Validates the expense form fields.
+ *
+ * Checks:
+ *  - #item-name: must be non-empty after trimming (max 100 chars enforced by HTML)
+ *  - #amount: must be a number in the range [0.01, 999999999.99]
+ *  - #category: must have a non-empty value selected
+ *  - #tx-date: must be non-empty
+ *
+ * Writes inline error messages into the corresponding error spans.
+ * Returns true if all fields are valid, false otherwise.
+ *
+ * Satisfies Requirements 5.4, 5.5
+ *
+ * @returns {boolean} Whether the form is valid.
+ */
+function validateForm() {
+  let valid = true;
+
+  const nameInput    = document.getElementById('item-name');
+  const amountInput  = document.getElementById('amount');
+  const categoryInput= document.getElementById('category');
+  const dateInput    = document.getElementById('tx-date');
+
+  const nameError    = document.getElementById('item-name-error');
+  const amountError  = document.getElementById('amount-error');
+  const categoryError= document.getElementById('category-error');
+  const dateError    = document.getElementById('tx-date-error');
+
+  // Clear all previous errors before re-validating
+  if (nameError)     nameError.textContent = '';
+  if (amountError)   amountError.textContent = '';
+  if (categoryError) categoryError.textContent = '';
+  if (dateError)     dateError.textContent = '';
+
+  // ── Item Name ──────────────────────────────────────────────────────────────
+  if (!nameInput || !nameInput.value.trim()) {
+    if (nameError) nameError.textContent = 'Item name is required.';
+    valid = false;
+  }
+
+  // ── Amount ─────────────────────────────────────────────────────────────────
+  const rawAmount = amountInput ? parseFloat(amountInput.value) : NaN;
+  if (!amountInput || amountInput.value.trim() === '' || isNaN(rawAmount)) {
+    if (amountError) amountError.textContent = 'Amount is required.';
+    valid = false;
+  } else if (rawAmount < CONSTANTS.AMOUNT_MIN || rawAmount > CONSTANTS.AMOUNT_MAX) {
+    if (amountError) {
+      amountError.textContent =
+        `Amount must be between ${formatRupiah(CONSTANTS.AMOUNT_MIN)} and ${formatRupiah(CONSTANTS.AMOUNT_MAX)}.`;
+    }
+    valid = false;
+  }
+
+  // ── Category ───────────────────────────────────────────────────────────────
+  if (!categoryInput || !categoryInput.value) {
+    if (categoryError) categoryError.textContent = 'Please select a category.';
+    valid = false;
+  }
+
+  // ── Date ───────────────────────────────────────────────────────────────────
+  if (!dateInput || !dateInput.value) {
+    if (dateError) dateError.textContent = 'Date is required.';
+    valid = false;
+  }
+
+  return valid;
+}
+
+/**
+ * Sets the monthly budget, persists it, and re-renders all affected UI regions.
+ *
+ * Steps:
+ *  1. Clamp the value: treat NaN or negative as 0.
+ *  2. Set AppState.budget = amount.
+ *  3. Call saveBudget() to persist to LocalStorage.
+ *  4. Re-render Dashboard Cards, Budget Progress Bar, and Insights.
+ *
+ * Satisfies Requirements 2.7, 3.5, 4.4
+ *
+ * @param {number} amount - The new budget value (already parsed by the caller).
+ */
+function setBudget(amount) {
+  // Treat NaN and negative values as 0
+  const sanitized = (isNaN(amount) || amount < 0) ? 0 : amount;
+
+  AppState.budget = sanitized;
+  saveBudget();
+
+  renderDashboardCards();
+  renderBudgetProgress();
+  renderInsights();
+}
+
+/**
+ * Creates a new transaction object and adds it to AppState.
+ *
+ * Steps:
+ *  1. Generate a unique id using the format:
+ *       "tx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8)
+ *  2. Push the new transaction to AppState.transactions.
+ *  3. Call saveTransactions() — re-throws on quota error so the caller can
+ *     skip the form reset.
+ *  4. Re-render all affected UI regions.
+ *  5. Show a success toast.
+ *
+ * Satisfies Requirements 5.6, 5.7, 5.8, 5.9
+ *
+ * @param {{ name: string, amount: number, category: string, date: string }} txInput
+ */
+function addTransaction(txInput) {
+  const id = 'tx_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+
+  const transaction = {
+    id,
+    name:     txInput.name,
+    amount:   txInput.amount,
+    category: txInput.category,
+    date:     txInput.date,
+  };
+
+  // Attempt to persist BEFORE mutating in-memory state so that a quota error
+  // leaves AppState.transactions unchanged (memory and storage stay in sync).
+  // Temporarily push, try to save, and roll back on failure.
+  AppState.transactions.push(transaction);
+  try {
+    saveTransactions();
+  } catch (err) {
+    // Roll back the in-memory push so AppState stays consistent with storage
+    AppState.transactions.pop();
+    throw err; // re-throw so the submit handler skips the form reset
+  }
+
+  // Re-render all regions affected by a new transaction
+  renderDashboardCards();
+  renderBudgetProgress();
+  renderInsights();
+  renderChart();
+  renderTransactionList();
+  renderMonthlySummary();
+
+  showToast('Expense added!', 'success');
+}
+
+/**
+ * Removes a transaction from AppState and persists the change.
+ *
+ * Steps:
+ *  1. Filter out the entry with the matching id from AppState.transactions.
+ *  2. Call saveTransactions() to persist the updated list.
+ *  3. Re-render all affected UI regions.
+ *  4. Show a success toast: "Transaction deleted."
+ *
+ * Note: The confirm() dialog is handled by the event delegation layer in
+ * attachEventListeners(). This function assumes confirmation has already
+ * been granted by the time it is called.
+ *
+ * Satisfies Requirements 8.3–8.6.
+ *
+ * @param {string} id - The id of the transaction to delete.
+ */
+function deleteTransaction(id) {
+  AppState.transactions = AppState.transactions.filter(tx => tx.id !== id);
+  saveTransactions();
+
+  renderDashboardCards();
+  renderBudgetProgress();
+  renderInsights();
+  renderChart();
+  renderTransactionList();
+  renderMonthlySummary();
+
+  showToast('Transaction deleted.', 'success');
+}
+
+/**
+ * Adds a new category to AppState.categories.
+ *
+ * Validation:
+ *  - name must be non-empty after trimming
+ *  - name (case-insensitive, trimmed) must not match an existing category
+ *  - total category count must be < MAX_CATEGORIES (50)
+ *
+ * On success: pushes to AppState.categories, saves, re-renders modal and
+ * category select.
+ * On failure: shows inline error in #category-modal-error and returns false.
+ *
+ * Satisfies Requirements 6.4, 6.5, 6.6, 6.10
+ *
+ * @param {string} name - The new category name (raw, un-trimmed).
+ * @returns {boolean} true if added, false if rejected.
+ */
+function addCategory(name) {
+  const errorEl = document.getElementById('category-modal-error');
+  const trimmed = name.trim();
+
+  // Guard: non-empty
+  if (!trimmed) {
+    if (errorEl) errorEl.textContent = 'Category name cannot be empty.';
+    return false;
+  }
+
+  // Guard: max 50 categories
+  if (AppState.categories.length >= CONSTANTS.MAX_CATEGORIES) {
+    if (errorEl) errorEl.textContent = 'Category limit reached (50). Delete a category to add more.';
+    return false;
+  }
+
+  // Guard: case-insensitive duplicate check
+  const lower = trimmed.toLowerCase();
+  const isDuplicate = AppState.categories.some(c => c.toLowerCase() === lower);
+  if (isDuplicate) {
+    if (errorEl) errorEl.textContent = 'A category with that name already exists.';
+    return false;
+  }
+
+  // All checks passed — persist and re-render
+  AppState.categories.push(trimmed);
+  saveCategories();
+  renderCategoryModal();
+  updateExpenseFormCategorySelect();
+
+  // Clear any lingering error
+  const newErrorEl = document.getElementById('category-modal-error');
+  if (newErrorEl) newErrorEl.textContent = '';
+
+  return true;
+}
+
+/**
+ * Deletes a custom category from AppState.categories.
+ *
+ * Guards:
+ *  - Cannot delete a default category (Food, Transport, Fun)
+ *  - Cannot delete a category that has associated transactions
+ *
+ * On success: filters AppState.categories, saves, re-renders modal and
+ * category select, shows a success toast.
+ * On failure: shows inline error and returns false.
+ *
+ * Satisfies Requirements 6.7, 6.8
+ *
+ * @param {string} name - The exact category name to delete.
+ * @returns {boolean} true if deleted, false if rejected.
+ */
+function deleteCategory(name) {
+  const errorEl = document.getElementById('category-modal-error');
+
+  // Guard: default categories cannot be deleted
+  if (DEFAULT_CATEGORIES.includes(name)) {
+    if (errorEl) errorEl.textContent = 'Default categories cannot be deleted.';
+    return false;
+  }
+
+  // Guard: categories with transactions cannot be deleted
+  const hasTransactions = AppState.transactions.some(tx => tx.category === name);
+  if (hasTransactions) {
+    if (errorEl) errorEl.textContent = `Cannot delete "${name}" — it has associated transactions.`;
+    return false;
+  }
+
+  // All checks passed — remove and persist
+  AppState.categories = AppState.categories.filter(c => c !== name);
+  saveCategories();
+  renderCategoryModal();
+  updateExpenseFormCategorySelect();
+
+  showToast(`Category "${name}" deleted.`, 'success');
+  return true;
+}
+
+/**
+ * Clears all persisted data from LocalStorage, resets AppState to empty
+ * defaults, re-renders all UI regions, and shows a success toast.
+ *
+ * Satisfies Requirements 11.3, 11.4
+ */
+function clearAllData() {
+  // Clear all four LocalStorage keys
+  localStorage.removeItem(CONSTANTS.STORAGE_KEYS.TRANSACTIONS);
+  localStorage.removeItem(CONSTANTS.STORAGE_KEYS.BUDGET);
+  localStorage.removeItem(CONSTANTS.STORAGE_KEYS.CATEGORIES);
+  localStorage.removeItem(CONSTANTS.STORAGE_KEYS.THEME);
+
+  // Reset AppState to empty defaults
+  AppState.transactions = [];
+  AppState.budget = 0;
+  AppState.categories = [...DEFAULT_CATEGORIES];
+  AppState.theme = 'light';
+  AppState.selectedMonth = new Date().toISOString().slice(0, 7);
+  AppState.chartInstance = null;
+  AppState.txFilter = { search: '', category: 'all', sort: 'newest' };
+
+  // Apply light theme
+  document.documentElement.setAttribute('data-theme', 'light');
+
+  // Re-render all UI regions
+  renderAll();
+
+  // Reset the date field
+  const dateInput = document.getElementById('tx-date');
+  if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+
+  showToast('All data has been cleared.', 'success');
+}
+
+/**
+ * Generates a CSV string from all transactions sorted by date ascending,
+ * then triggers a browser download.
+ *
+ * Header row: Date,Item Name,Category,Amount
+ * Data rows: date,name,category,numeric amount (no currency symbol)
+ *
+ * Satisfies Requirements 10.2, 10.3, 10.4, 10.5
+ */
+function exportCSV() {
+  if (AppState.transactions.length === 0) {
+    showToast('No transactions to export.', 'error');
+    return;
+  }
+
+  const csvString = exportCSVString(AppState.transactions);
+
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ledgerly-transactions.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Pure function: builds a CSV string from a transaction array.
+ * Exported for testing.
+ *
+ * @param {Array<{id:string, name:string, amount:number, category:string, date:string}>} transactions
+ * @returns {string} CSV string with header and data rows.
+ */
+function exportCSVString(transactions) {
+  const sorted = transactions.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const header = 'Date,Item Name,Category,Amount';
+  const rows = sorted.map(tx => {
+    // Escape double-quotes in string fields by doubling them (CSV standard)
+    const escapedName = `"${tx.name.replace(/"/g, '""')}"`;
+    const escapedCategory = `"${tx.category.replace(/"/g, '""')}"`;
+    return `${tx.date},${escapedName},${escapedCategory},${tx.amount}`;
+  });
+  return [header, ...rows].join('\n');
+}
+
+/**
+ * Pure function: filters transactions by the given txFilter object.
+ * Only applies search (name substring) and category filters on the
+ * transactions provided — does NOT apply the month restriction.
+ * Exported for testing (Property 8).
+ *
+ * @param {Array} transactions - Transaction array to filter.
+ * @param {{ search: string, category: string, sort: string }} txFilter
+ * @returns {Array} Filtered (and sorted) transactions.
+ */
+function filterTransactions(transactions, txFilter) {
+  let result = transactions.slice();
+
+  // Search filter (case-insensitive name substring)
+  const q = (txFilter.search || '').toLowerCase();
+  if (q) {
+    result = result.filter(tx => tx.name.toLowerCase().includes(q));
+  }
+
+  // Category filter
+  if (txFilter.category && txFilter.category !== 'all') {
+    result = result.filter(tx => tx.category === txFilter.category);
+  }
+
+  // Sort
+  const sort = txFilter.sort || 'newest';
+  result.sort((a, b) => {
+    switch (sort) {
+      case 'newest':      return b.date.localeCompare(a.date);
+      case 'oldest':      return a.date.localeCompare(b.date);
+      case 'amount-high': return b.amount - a.amount;
+      case 'amount-low':  return a.amount - b.amount;
+      case 'category-az': return a.category.localeCompare(b.category);
+      default:            return b.date.localeCompare(a.date);
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Applies a new theme to the application.
+ *
+ * Steps:
+ *  1. Sets AppState.theme to newTheme.
+ *  2. Calls document.documentElement.setAttribute('data-theme', newTheme) so
+ *     the CSS custom-property overrides take effect immediately.
+ *  3. Calls saveTheme() to persist the preference to LocalStorage.
+ *  4. Updates the theme toggle button label to reflect the mode that will be
+ *     activated on the *next* click:
+ *       - current theme is 'dark'  → button says "Light"
+ *       - current theme is 'light' → button says "Dark"
+ *
+ * Satisfies Requirements 1.4, 1.5, 1.6, 1.7, 1.8
+ *
+ * @param {'light'|'dark'} newTheme - The theme to apply.
+ */
+function setTheme(newTheme) {
+  // 1. Update in-memory state
+  AppState.theme = newTheme;
+
+  // 2. Apply to the document root so CSS custom properties switch immediately
+  document.documentElement.setAttribute('data-theme', newTheme);
+
+  // 3. Persist to LocalStorage
+  saveTheme();
+
+  // 4. Update the toggle button label — show the mode the NEXT click will activate:
+  //    dark  → next click switches to light → label "Light"
+  //    light → next click switches to dark  → label "Dark"
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) {
+    const nextLabel = newTheme === 'dark' ? 'Light' : 'Dark';
+    btn.textContent = nextLabel;
+    btn.setAttribute('aria-label', `Switch to ${nextLabel} mode`);
+  }
+}
+
+/**
+ * Wires all event listeners for the application.
+ * Called once from DOMContentLoaded after the initial render.
+ *
+ * Covers task 17.1: Expense form submit + per-field error clearing
+ * Covers task 17.2: Delete transaction (event delegation)
+ * Covers task 17.3: Category modal open/add/delete/close
+ * Covers task 17.4: Theme toggle (event delegation on header)
+ * Covers task 17.5: Budget input + set button
+ * Covers task 17.6: Search, category filter, sort controls
+ * Covers task 17.7: Month selector
+ * Covers task 17.8: CSV export button
+ * Covers task 17.9: Clear all data button
+ *
+ * Satisfies Requirements 1.4–1.8, 2.7, 3.5, 4.4, 5.1–5.9,
+ *   6.1–6.10, 8.3–8.11, 9.1–9.2, 10.1–10.5, 11.1–11.5
+ */
+function attachEventListeners() {
+
+  // ── 17.4: Theme Toggle (event delegation on #app-header) ──────────────────
+  // Delegation handles the re-rendered button after each renderHeader() call.
+  const appHeader = document.getElementById('app-header');
+  if (appHeader) {
+    appHeader.addEventListener('click', function (e) {
+      const toggleBtn = e.target.closest('#theme-toggle-btn');
+      if (!toggleBtn) return;
+      const newTheme = AppState.theme === 'light' ? 'dark' : 'light';
+      setTheme(newTheme);
+    });
+  }
+
+  // ── 17.2: Delete Transaction (event delegation on #transaction-list) ───────
+  const transactionList = document.getElementById('transaction-list');
+  if (transactionList) {
+    transactionList.addEventListener('click', function (e) {
+      // Target specifically the delete button (not the whole tx-item row)
+      const deleteBtn = e.target.closest('.btn-delete-tx');
+      if (!deleteBtn) return;
+      const id = deleteBtn.getAttribute('data-id');
+      if (!id) return;
+      const confirmed = confirm('Are you sure you want to delete this transaction? This action cannot be undone.');
+      if (!confirmed) return;
+      deleteTransaction(id);
+    });
+  }
+
+  // ── 17.1: Expense Form ─────────────────────────────────────────────────────
+  const expenseForm = document.getElementById('expense-form');
+  if (expenseForm) {
+    expenseForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!validateForm()) return;
+
+      const nameInput     = document.getElementById('item-name');
+      const amountInput   = document.getElementById('amount');
+      const categoryInput = document.getElementById('category');
+      const dateInput     = document.getElementById('tx-date');
+
+      const txInput = {
+        name:     nameInput.value.trim(),
+        amount:   parseFloat(amountInput.value),
+        category: categoryInput.value,
+        date:     dateInput.value,
+      };
+
+      try {
+        addTransaction(txInput);
+      } catch (err) {
+        // saveTransactions() threw (storage quota) — toast shown; keep form
+        return;
+      }
+
+      // Reset form fields and restore today's date
+      expenseForm.reset();
+      const today = new Date().toISOString().slice(0, 10);
+      if (dateInput) dateInput.value = today;
+    });
+
+    // Per-field input listeners: clear inline error on user input
+    const fieldErrorPairs = [
+      ['item-name', 'item-name-error'],
+      ['amount',    'amount-error'],
+      ['category',  'category-error'],
+      ['tx-date',   'tx-date-error'],
+    ];
+    fieldErrorPairs.forEach(function ([fieldId, errorId]) {
+      const field     = document.getElementById(fieldId);
+      const errorSpan = document.getElementById(errorId);
+      if (field && errorSpan) {
+        field.addEventListener('input', function () { errorSpan.textContent = ''; });
+        if (field.tagName === 'SELECT') {
+          field.addEventListener('change', function () { errorSpan.textContent = ''; });
+        }
+      }
+    });
+  }
+
+  // ── 17.3: Category Modal ───────────────────────────────────────────────────
+  // "Manage Categories" button opens the modal and renders its content.
+  const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+  const categoryModal       = document.getElementById('category-modal');
+
+  if (manageCategoriesBtn && categoryModal) {
+    manageCategoriesBtn.addEventListener('click', function () {
+      renderCategoryModal();
+      categoryModal.showModal();
+    });
+  }
+
+  // Event delegation on the <dialog> itself so it works after each renderCategoryModal()
+  // replaces the modal's innerHTML.
+  if (categoryModal) {
+    // Close / cancel button (id="modal-close-btn" is set by renderCategoryModal)
+    categoryModal.addEventListener('click', function (e) {
+      const closeBtn = e.target.closest('#modal-close-btn');
+      if (closeBtn) {
+        categoryModal.close();
+        // Restore focus to "Manage Categories" button (Req 6.9)
+        const btn = document.getElementById('manage-categories-btn');
+        if (btn) btn.focus();
+        return;
+      }
+
+      // Delete-category button
+      const deleteBtn = e.target.closest('.btn-delete-cat');
+      if (deleteBtn) {
+        const catName = deleteBtn.getAttribute('data-category');
+        if (catName) deleteCategory(catName);
+        return;
+      }
+    });
+
+    // Add-category form submit (event delegation via 'submit' on the dialog)
+    categoryModal.addEventListener('submit', function (e) {
+      if (!e.target.id || e.target.id !== 'add-category-form') return;
+      e.preventDefault();
+      const input = document.getElementById('new-category-input');
+      if (!input) return;
+      const added = addCategory(input.value);
+      if (added) {
+        // Clear input on success — input has been re-rendered, re-query
+        const freshInput = document.getElementById('new-category-input');
+        if (freshInput) freshInput.value = '';
+      }
+    });
+
+    // Close the modal when the user clicks the backdrop (native <dialog> behavior)
+    categoryModal.addEventListener('cancel', function () {
+      // 'cancel' fires when the user presses Escape or the dialog closes
+      const btn = document.getElementById('manage-categories-btn');
+      if (btn) btn.focus();
+    });
+  }
+
+  // ── 17.5: Budget Input + Set Button ───────────────────────────────────────
+  const budgetInput  = document.getElementById('budget-input');
+  const budgetSetBtn = document.getElementById('budget-set-btn');
+
+  if (budgetInput) {
+    function handleBudgetInput() {
+      const parsed = parseFloat(budgetInput.value);
+      const amount = (isNaN(parsed) || parsed < 0) ? 0 : parsed;
+      budgetInput.value = amount === 0 ? '' : amount;
+      setBudget(amount);
+    }
+    budgetInput.addEventListener('change', handleBudgetInput);
+    budgetInput.addEventListener('blur',   handleBudgetInput);
+
+    if (budgetSetBtn) {
+      budgetSetBtn.addEventListener('click', function () {
+        const parsed = parseFloat(budgetInput.value);
+        const amount = (isNaN(parsed) || parsed < 0) ? 0 : parsed;
+        budgetInput.value = amount === 0 ? '' : amount;
+        setBudget(amount);
+      });
+    }
+  }
+
+  // ── 17.6: Search, Category Filter, Sort Controls ───────────────────────────
+  const searchInput    = document.getElementById('search-input');
+  const categoryFilter = document.getElementById('category-filter');
+  const sortSelect     = document.getElementById('sort-select');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      AppState.txFilter.search = searchInput.value;
+      renderTransactionList();
+    });
+  }
+
+  if (categoryFilter) {
+    categoryFilter.addEventListener('change', function () {
+      AppState.txFilter.category = categoryFilter.value;
+      renderTransactionList();
+    });
+  }
+
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function () {
+      AppState.txFilter.sort = sortSelect.value;
+      renderTransactionList();
+    });
+  }
+
+  // ── 17.7: Month Selector ───────────────────────────────────────────────────
+  const monthSelector = document.getElementById('month-selector');
+  if (monthSelector) {
+    monthSelector.addEventListener('change', function () {
+      AppState.selectedMonth = monthSelector.value;
+      renderMonthlySummary();
+    });
+  }
+
+  // ── 17.8: CSV Export Button ────────────────────────────────────────────────
+  const exportCsvBtn = document.getElementById('export-csv-btn');
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener('click', function () {
+      exportCSV();
+    });
+  }
+
+  // ── 17.9: Clear All Data Button ────────────────────────────────────────────
+  const clearDataBtn = document.getElementById('clear-data-btn');
+  if (clearDataBtn) {
+    clearDataBtn.addEventListener('click', function () {
+      const confirmed = confirm(
+        'Are you sure you want to clear all data?\n\n' +
+        'This will permanently delete all transactions, your budget, and all custom categories. ' +
+        'This action cannot be undone.'
+      );
+      if (!confirmed) return; // Req 11.5: cancel is a no-op
+      clearAllData();
+    });
+  }
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+
+/**
+ * Displays a non-blocking toast notification.
+ *
+ * Creates a `<div class="toast toast--{type}">` element with the given message,
+ * appends it to `#toast-container`, and automatically removes it after 4000ms.
+ * The toast is visible for ≥ 3s and removed within 5s.
+ *
+ * @param {string} message - The text to display in the toast.
+ * @param {'success'|'error'} type - Controls the visual style of the toast.
+ *
+ * Satisfies Requirement 5.9
+ */
+function showToast(message, type) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.textContent = message;
+
+  container.appendChild(toast);
+
+  // Auto-dismiss after 4000ms
+  setTimeout(function () {
+    if (toast.parentElement) {
+      toast.parentElement.removeChild(toast);
+    }
+  }, 4000);
+}
+
+// ─── RENDER: ALL ──────────────────────────────────────────────────────────────
+
+/**
+ * Calls every render function once to fully populate the UI from AppState.
+ * Called once during initialization; subsequent updates call only affected subsets.
+ *
+ * Satisfies Requirement 12.5
+ */
+function renderAll() {
+  renderHeader();
+  renderDashboardCards();
+  renderBudgetProgress();
+  renderInsights();
+  renderChart();
+  updateExpenseFormCategorySelect();
+  renderTransactionList();
+  renderMonthlySummary();
+  renderCategoryModal();
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Applies the saved theme to the <html> element.
+ * Called before renderAll() to avoid a flash of the wrong theme in the
+ * rendered header button label.
+ */
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', AppState.theme);
+}
+
+/**
+ * Boot sequence: load storage → apply theme → render all regions → attach events.
+ * Satisfies Requirements 1.8, 1.9, 12.5
+ */
+document.addEventListener('DOMContentLoaded', function () {
+  // 1. Hydrate AppState from LocalStorage
+  loadFromStorage();
+
+  // 2. Apply persisted theme before any paint
+  applyTheme();
+
+  // 3. Set the initial selectedMonth to the current calendar month
+  AppState.selectedMonth = new Date().toISOString().slice(0, 7);
+
+  // 4. Render all UI regions
+  renderAll();
+
+  // 5. Set today's date on the expense form date field
+  const dateInput = document.getElementById('tx-date');
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  // 6. Wire all event handlers
+  attachEventListeners();
+});
+
+// ─── EXPORTS FOR TESTING ─────────────────────────────────────────────────────
+// Guard: only export in Node.js test environments (CommonJS module.exports),
+// not in the browser where `module` is undefined.
+if (typeof module !== 'undefined') {
+  module.exports = {
+    formatRupiah,
+    getCategoryColor,
+    getTotalExpenses,
+    getRemainingBalance,
+    getBudgetRatio,
+    getProgressBarColor,
+    getLargestCategory,
+    daysInMonth,
+    getMonthlyStats,
+    exportCSVString,
+    filterTransactions,
+    CATEGORY_PALETTE,
+  };
+}

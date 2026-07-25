@@ -32,6 +32,7 @@
   --color-secondary-text: #AAB7C7;
   --color-primary: #0A84FF;
   --color-border: #22334D;
+  --color-soft-blue: #0A1F3A;
 }
 
 /* ─── GLOBAL RESET ─────────────────────────────────────────────────────────── */
@@ -399,4 +400,633 @@ dialog *:focus-visible,
   text-align: center;
   padding: 1rem;
   margin: 0;
+}
+
+/* ─── COMPONENTS: SECONDARY & ICON BUTTONS ─────────────────────────────────── */
+/* Requirements 13.5: rounded corners 10–12px; matches ghost/outline style       */
+
+/* Secondary — transparent with border (alias for ghost, used in HTML)           */
+.btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-soft-blue);
+}
+
+/* Small variant */
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* Icon-only button (square, circular) */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-secondary-text);
+  cursor: pointer;
+  transition: background-color 200ms ease, color 200ms ease;
+  flex-shrink: 0;
+}
+
+.btn-icon:hover {
+  background: var(--color-border);
+  color: var(--color-primary-text);
+}
+
+/* ─── LAYOUT: PAGE STRUCTURE ────────────────────────────────────────────────── */
+
+#app-header {
+  background: var(--color-card-bg);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.875rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-logo { flex-shrink: 0; }
+
+.header-title-group { display: flex; flex-direction: column; gap: 0; }
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+  color: var(--color-primary-text);
+}
+
+.header-subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-secondary-text);
+  margin: 0;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.header-month {
+  font-size: 0.875rem;
+  color: var(--color-secondary-text);
+  font-weight: 500;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ─── COMPONENTS: SECTION TITLE ─────────────────────────────────────────────── */
+
+.section-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-primary-text);
+  margin: 0 0 1rem;
+}
+
+/* ─── COMPONENTS: FORM FIELDS ───────────────────────────────────────────────── */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.form-group label,
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary-text);
+}
+
+.form-input,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="search"],
+select {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-card-bg);
+  color: var(--color-primary-text);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color var(--transition-theme);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="search"]:focus,
+select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236E6E73' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+
+.field-error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+  min-height: 1.2em;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── COMPONENTS: EXPENSE FORM SECTION ──────────────────────────────────────── */
+
+#expense-form-section {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+#expense-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+/* ─── COMPONENTS: BUDGET PROGRESS SECTION ───────────────────────────────────── */
+
+#budget-progress {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.budget-progress-container { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.budget-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.budget-progress-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-secondary-text);
+}
+
+.budget-progress-pct {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-text);
+}
+
+/* Budget input row (static HTML elements) */
+.budget-input-row,
+.budget-progress-header + .progress-bar + .budget-input-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.budget-label { font-size: 0.875rem; font-weight: 500; color: var(--color-secondary-text); }
+
+.budget-input {
+  flex: 1;
+  min-width: 160px;
+}
+
+/* budget-percentage span (static HTML) */
+.budget-percentage {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-text);
+}
+
+/* progress-bar-track (static HTML) and fill */
+.progress-bar-track {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background-color: var(--color-border);
+  overflow: hidden;
+}
+
+#budget-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 300ms ease, background-color 250ms ease;
+}
+
+/* ─── COMPONENTS: INSIGHTS SECTION ──────────────────────────────────────────── */
+
+#insights {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.insight,
+.insight-item {
+  font-size: 0.9375rem;
+  color: var(--color-secondary-text);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.insight--empty { font-style: italic; }
+.insight--over-budget { color: var(--color-danger); font-weight: 600; }
+
+/* ─── COMPONENTS: CHART SECTION ─────────────────────────────────────────────── */
+
+#chart-section {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.empty-state,
+#chart-empty-msg {
+  color: var(--color-secondary-text);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+  margin: 0;
+}
+
+/* ─── COMPONENTS: TRANSACTION LIST SECTION ───────────────────────────────────── */
+
+#transaction-list {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.transaction-controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.transaction-controls .form-group { flex: 1; min-width: 140px; }
+
+.search-input { width: 100%; }
+
+#transaction-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tx-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card-bg);
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.tx-category-badge {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tx-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-meta {
+  font-size: 0.8125rem;
+  color: var(--color-secondary-text);
+}
+
+.tx-date, .tx-category { display: inline; }
+
+.tx-amount {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tx-list-empty {
+  color: var(--color-secondary-text);
+  font-style: italic;
+  text-align: center;
+  padding: 1.5rem 0;
+  margin: 0;
+}
+
+.btn-delete-tx {
+  flex-shrink: 0;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+/* ─── COMPONENTS: MONTHLY SUMMARY SECTION ────────────────────────────────────── */
+
+#monthly-summary {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.monthly-summary-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.monthly-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.monthly-stat-item {
+  background: var(--color-soft-blue);
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: background-color var(--transition-theme);
+}
+
+[data-theme="dark"] .monthly-stat-item {
+  background: rgba(10, 132, 255, 0.1);
+}
+
+.monthly-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-secondary-text);
+  font-weight: 500;
+}
+
+.monthly-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-text);
+}
+
+.empty-state-text {
+  color: var(--color-secondary-text);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem 0;
+  margin: 0;
+}
+
+/* Summary breakdown table */
+.summary-breakdown { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.summary-breakdown-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 60px 1fr;
+  gap: 0.5rem;
+  padding: 0 0.25rem 0.25rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summary-breakdown-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 60px 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.375rem 0.25rem;
+}
+
+.summary-breakdown-name { font-weight: 500; font-size: 0.9rem; }
+.summary-breakdown-amount { font-weight: 600; font-size: 0.9rem; }
+.summary-breakdown-pct { font-size: 0.8rem; color: var(--color-secondary-text); }
+
+.summary-breakdown-bar-track {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.summary-breakdown-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 300ms ease;
+}
+
+/* ─── COMPONENTS: DATA TOOLS SECTION ────────────────────────────────────────── */
+
+#data-tools {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.data-tools-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ─── COMPONENTS: CATEGORY MODAL ────────────────────────────────────────────── */
+
+.modal-content { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.category-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card-bg);
+  transition: background-color var(--transition-theme), border-color var(--transition-theme);
+}
+
+.category-badge {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.category-name { flex: 1; font-size: 0.9375rem; font-weight: 500; }
+
+.category-tag-default {
+  font-size: 0.75rem;
+  color: var(--color-secondary-text);
+  background: var(--color-soft-blue);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .category-tag-default {
+  background: rgba(10, 132, 255, 0.15);
+}
+
+.add-category-form { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.add-category-row {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-end;
+}
+
+.add-category-row input { flex: 1; }
+
+.category-limit-msg { font-style: italic; }
+
+/* ─── DASHBOARD CARDS: UTILITY CLASSES ─────────────────────────────────────── */
+
+.card__label {
+  font-size: 0.8125rem;
+  color: var(--color-secondary-text);
+  font-weight: 500;
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-primary-text);
+}
+
+.card__value--large { font-size: 1.875rem; }
+
+.text-danger { color: var(--color-danger) !important; }
+
+.dashboard-card { padding: 1.25rem 1.5rem; }
+
+/* ─── RESPONSIVE ADJUSTMENTS ────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  main { padding: 1rem; gap: 1rem; }
+  #app-header { padding: 0.75rem 1rem; }
+  .form-actions { flex-direction: column; }
+  .form-actions .btn { width: 100%; justify-content: center; }
+  .data-tools-actions { flex-direction: column; }
+  .data-tools-actions .btn { width: 100%; justify-content: center; }
+  .summary-breakdown-header,
+  .summary-breakdown-row { grid-template-columns: 1fr 1fr 50px 80px; }
+}
+
+@media (min-width: 1024px) {
+  .main-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
 }
